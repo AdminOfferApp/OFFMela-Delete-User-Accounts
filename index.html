@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Deletion Specification & Workflow — OFF Mela</title>
+  <meta name="description" content="Technical specification, API payloads, cascade cleanup, and cooling-off rules for OFF Mela account deletion.">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-dark: #4338CA;
+      --primary-light: #EEF2FF;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --bg-page: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --border: #E2E8F0;
+      --danger: #DC2626;
+      --danger-light: #FEE2E2;
+      --success: #10B981;
+      --success-light: #DCFCE7;
+      --code-bg: #1E293B;
+      --code-text: #F1F5F9;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: var(--danger);
+      color: #FFFFFF;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-left: 1.25rem;
+      transition: color 0.15s ease;
+    }
+    nav a:hover, nav a.active {
+      color: var(--primary);
+    }
+    .hero {
+      background: linear-gradient(180deg, #FFFFFF 0%, var(--bg-page) 100%);
+      padding: 3rem 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-content {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .meta-tag {
+      display: inline-block;
+      background: var(--danger-light);
+      color: var(--danger);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+    main {
+      max-width: 960px;
+      margin: 2rem auto 4rem;
+      padding: 0 1.5rem;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.03);
+    }
+    section {
+      margin-bottom: 3rem;
+    }
+    section:last-child {
+      margin-bottom: 0;
+    }
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--primary-light);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    h3 {
+      font-size: 1.12rem;
+      font-weight: 700;
+      margin: 1.5rem 0 0.6rem;
+      color: #1E293B;
+    }
+    p {
+      color: #334155;
+      margin-bottom: 1rem;
+      font-size: 0.98rem;
+    }
+    ul, ol {
+      margin: 0.75rem 0 1.25rem 1.5rem;
+      color: #334155;
+      font-size: 0.98rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 1.25rem;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      margin: 1rem 0 1.5rem;
+      border: 1px solid #334155;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background: #F1F5F9;
+      color: #0F172A;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+    th {
+      background: #F8FAFC;
+      font-weight: 700;
+      color: #1E293B;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-post {
+      background: #E0E7FF;
+      color: var(--primary);
+    }
+    .badge-danger {
+      background: var(--danger-light);
+      color: var(--danger);
+    }
+    .badge-success {
+      background: var(--success-light);
+      color: #166534;
+    }
+    .diagram-box {
+      background: #F8FAFC;
+      border: 2px dashed #CBD5E1;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .step-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .step-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .info-callout {
+      background: #EFF6FF;
+      border-left: 4px solid #3B82F6;
+      padding: 1.25rem;
+      border-radius: 8px;
+      color: #1E40AF;
+      margin: 1.5rem 0;
+    }
+    footer {
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+    @media (max-width: 640px) {
+      .card {
+        padding: 1.5rem;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+      pre {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <a href="../index.html" class="brand">
+        <div class="brand-badge">DEL</div>
+        <span>OFF Mela Specification</span>
+      </a>
+      <nav>
+        <a href="../terms_and_conditions/index.html">Terms</a>
+        <a href="../privacy_policy/index.html">Privacy</a>
+        <a href="index.html" class="active">Account Deletion</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-content">
+      <span class="meta-tag">Google Play Compliance & Security Audit</span>
+      <h1>Account Deletion Architecture & Workflow</h1>
+      <p class="subtitle">Complete technical specification of endpoint payloads, cascade data purge, rate-limiting, and cooling-off period rules.</p>
+    </div>
+  </div>
+
+  <main>
+    <div class="card">
+      <section>
+        <h2>1. Executive Summary & Google Play Compliance</h2>
+        <p>In accordance with <strong>Google Play Developer Policy Requirements regarding User Data & In-App Account Deletion</strong> and the <strong>Indian Digital Personal Data Protection Act, 2023</strong>, OFF Mela provides an automated, programmatic, and permanent account deletion service.</p>
+        <ul>
+          <li><strong>Self-Service Erasure:</strong> Customers and Merchants can delete their accounts directly inside the app without submitting a manual support ticket.</li>
+          <li><strong>Administrative Deletion:</strong> Authorized Admins and Super Admins can delete fraudulent, abusive, or offline-requested accounts from the Admin Portal.</li>
+          <li><strong>Privileged Backend Execution:</strong> Deletions are processed by an isolated microservice (`Offer Server`) utilizing Google Cloud Functions and a verified Firebase Admin SDK Service Account.</li>
+          <li><strong>Permanent Cascade:</strong> Authentication tokens are revoked, auth records deleted, and all Firestore profile records, notifications, shops, and offers purged.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. System Architecture</h2>
+        <div class="diagram-box">
+          <div class="step-grid">
+            <div class="step-card">
+              <div class="step-num">1</div>
+              <strong>Client App Trigger</strong>
+              <p style="font-size:0.88rem; color:var(--text-muted); margin-top:0.35rem;">Customer, Merchant, or Admin initiates deletion with confirmation.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-num">2</div>
+              <strong>ID Token Authentication</strong>
+              <p style="font-size:0.88rem; color:var(--text-muted); margin-top:0.35rem;">Client dispatches <code>Bearer &lt;idToken&gt;</code> to Cloud Function.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-num">3</div>
+              <strong>Service Account Engine</strong>
+              <p style="font-size:0.88rem; color:var(--text-muted); margin-top:0.35rem;">Firebase Admin SDK executes cascade cleanup in Firestore.</p>
+            </div>
+            <div class="step-card">
+              <div class="step-num">4</div>
+              <strong>Auth & Audit Purge</strong>
+              <p style="font-size:0.88rem; color:var(--text-muted); margin-top:0.35rem;">Firebase Auth account deleted; audit log logged to <code>account_deletion_logs</code>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. API Endpoint Specification</h2>
+        <table>
+          <tr>
+            <th>Method & Endpoint</th>
+            <td><span class="badge badge-post">POST</span> <code>/delete-account</code> (or <code>/api/delete-account</code>)</td>
+          </tr>
+          <tr>
+            <th>Production URL</th>
+            <td><code>https://us-central1-offmelaapp-94908.cloudfunctions.net/deleteAccount</code></td>
+          </tr>
+          <tr>
+            <th>Local Test URL</th>
+            <td><code>http://localhost:5001/delete-account</code></td>
+          </tr>
+          <tr>
+            <th>Headers Required</th>
+            <td>
+              <code>Authorization: Bearer &lt;Firebase_ID_Token&gt;</code><br>
+              <code>Content-Type: application/json</code>
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>4. Request Payloads</h2>
+
+        <h3>4.1 Customer Self-Deletion</h3>
+        <p>Dispatched by the Customer application when a customer confirms deletion in <strong>Profile &gt; Delete Account</strong>:</p>
+<pre><code>{
+  "reason": "Not using the app anymore",
+  "feedback": "Moving to another city",
+  "confirm": true
+}</code></pre>
+        <p><em>*Note: If <code>targetUid</code> is omitted, the server defaults to the caller's verified UID from the token.</em></p>
+
+        <h3>4.2 Merchant Self-Deletion</h3>
+        <p>Dispatched by the Merchant application when a shop owner deletes their merchant account in <strong>Merchant Profile &gt; Delete Merchant Account</strong>:</p>
+<pre><code>{
+  "reason": "Closing physical retail store",
+  "feedback": "Great platform experience",
+  "confirm": true,
+  "deleteShop": true
+}</code></pre>
+
+        <h3>4.3 Admin-Initiated Deletion</h3>
+        <p>Dispatched by an authenticated Super Admin or Admin from the Admin Portal modal:</p>
+<pre><code>{
+  "targetUid": "abcUserUid98234",
+  "reason": "Administrative deletion requested by phone verification",
+  "adminNotes": "Approved under ticket #1042"
+}</code></pre>
+        <p><em>*Note: The server verifies that the caller has custom claims or Firestore administrative roles before permitting deletion of another user.</em></p>
+      </section>
+
+      <section>
+        <h2>5. Response Payloads</h2>
+
+        <h3>5.1 Success Response (200 OK) — Customer Account</h3>
+<pre><code>{
+  "success": true,
+  "message": "Your account and all associated data have been permanently deleted.",
+  "deletedUid": "u983204910293",
+  "role": "customer",
+  "deletedAt": "2026-11-13T16:45:20.102Z",
+  "summary": {
+    "authDeleted": true,
+    "userDocDeleted": true,
+    "shopsDeleted": 0,
+    "offersDeleted": 0,
+    "boostRequestsDeleted": 0,
+    "notificationsDeleted": 8,
+    "savedOffersDeleted": 4,
+    "savedShopsDeleted": 2
+  }
+}</code></pre>
+
+        <h3>5.2 Success Response (200 OK) — Merchant Account</h3>
+<pre><code>{
+  "success": true,
+  "message": "User account was successfully deleted.",
+  "deletedUid": "m209384019283",
+  "role": "merchant",
+  "deletedAt": "2026-11-13T16:46:11.890Z",
+  "summary": {
+    "authDeleted": true,
+    "userDocDeleted": true,
+    "shopsDeleted": 1,
+    "offersDeleted": 12,
+    "boostRequestsDeleted": 2,
+    "notificationsDeleted": 15,
+    "savedOffersDeleted": 0,
+    "savedShopsDeleted": 0
+  }
+}</code></pre>
+
+        <h3>5.3 Error Response — Unauthorized (401)</h3>
+<pre><code>{
+  "success": false,
+  "error": "Unauthorized: Missing or malformed Authorization header.",
+  "code": "AUTH_REQUIRED"
+}</code></pre>
+
+        <h3>5.4 Error Response — Permission Denied (403)</h3>
+<pre><code>{
+  "success": false,
+  "error": "Permission denied: Only administrators are authorized to delete other accounts.",
+  "code": "PERMISSION_DENIED"
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>6. Cascade Data Cleanup Workflow</h2>
+        <p>When the endpoint executes, the following sequential purge takes place:</p>
+        <ol>
+          <li><strong>Token Verification:</strong> Decodes and validates the caller's Firebase ID token using <code>admin.auth().verifyIdToken()</code>.</li>
+          <li><strong>Role & Authorization Check:</strong> If <code>targetUid !== callerUid</code>, verifies the caller's admin privileges via custom claims or <code>admins</code> collection.</li>
+          <li><strong>Merchant Cascade (If Merchant):</strong>
+            <ul>
+              <li>Locates shops where <code>ownerUid == targetUid</code> in <code>shops</code>.</li>
+              <li>Queries and batch-deletes all promotional offers in <code>offers</code> tied to the merchant's UID or <code>shopId</code>.</li>
+              <li>Deletes pending or approved boost requests in <code>boost_requests</code>.</li>
+              <li>Deletes the merchant's store document in <code>shops</code>.</li>
+            </ul>
+          </li>
+          <li><strong>Subcollections Purge:</strong>
+            <ul>
+              <li>Deletes all documents in <code>users/{targetUid}/notifications</code>.</li>
+              <li>Deletes all documents in <code>users/{targetUid}/saved_offers</code>.</li>
+              <li>Deletes all documents in <code>users/{targetUid}/saved_shops</code>.</li>
+              <li>Deletes all documents in <code>users/{targetUid}/redemptions</code>.</li>
+            </ul>
+          </li>
+          <li><strong>Primary Document Deletion:</strong> Deletes <code>users/{targetUid}</code> and removes entry from <code>admins</code> if applicable.</li>
+          <li><strong>Authentication Destruction:</strong> Permanently deletes user from Firebase Auth via <code>admin.auth().deleteUser(targetUid)</code>, revoking all refresh tokens.</li>
+          <li><strong>Statutory Audit Log:</strong> Writes an anonymized record to <code>account_deletion_logs</code> capturing timestamp, initiating UID, reason, and deletion summary.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>7. Deletion Frequency & 30-Day Cooling-Off Policy</h2>
+        <div class="info-callout">
+          <strong>How often are users permitted to delete their account without concern?</strong><br>
+          Any genuine customer or merchant may delete their account at <strong>any time without penalty, fee, or concern</strong>.
+        </div>
+
+        <h3>Anti-Abuse & Promotional Integrity Safeguards</h3>
+        <ul>
+          <li><strong>The 30-Day Cooling-Off Window:</strong>
+            When an account is deleted, a non-reversible cryptographic hash of the primary identifier (phone or email) is recorded in <code>account_deletion_logs</code> alongside a 30-day timestamp.
+          </li>
+          <li><strong>Returning User Classification:</strong>
+            If an individual re-registers with the same phone or email within this 30-day window, the system automatically classifies them as a <strong>Returning Subscriber</strong>.
+          </li>
+          <li><strong>Promotional Perk Suppression:</strong>
+            One-time introductory benefits (such as new user welcome discounts, inaugural coupon bonuses, or first-time merchant boost credits) are suppressed during the cooling-off window. This completely eliminates promotional coupon cycling without restricting legitimate users.
+          </li>
+          <li><strong>Rapid Cycling Threshold:</strong>
+            A single identifier may perform a maximum of <strong>3 deletion-and-recreation cycles within a 90-day period</strong>. Accounts exceeding this threshold are placed on a 60-day registration hold requiring administrative review.
+          </li>
+          <li><strong>Admin Exemption:</strong>
+            Platform administrators are exempt from cooling-off limitations when deleting accounts for moderation, customer assistance, or fraud containment.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. Client Implementation Summary</h2>
+        <table>
+          <tr>
+            <th>Application</th>
+            <th>Location</th>
+            <th>Trigger</th>
+            <th>UX Behavior</th>
+          </tr>
+          <tr>
+            <td><strong>Customer App</strong></td>
+            <td><code>ProfileView</code></td>
+            <td>"Delete Account" menu tile</td>
+            <td>Shows confirmation dialog &gt; calls endpoint &gt; signs out &gt; redirects to login.</td>
+          </tr>
+          <tr>
+            <td><strong>Merchant App</strong></td>
+            <td><code>MerchantProfileView</code></td>
+            <td>"Delete Merchant Account" tile</td>
+            <td>High-stakes warning dialog &gt; deletes shop &amp; offers &gt; signs out.</td>
+          </tr>
+          <tr>
+            <td><strong>Admin Portal</strong></td>
+            <td><code>AdminUsersView</code></td>
+            <td>User Details Modal bottom sheet</td>
+            <td>"Delete Customer Account" button &gt; confirms &gt; refreshes users list.</td>
+          </tr>
+          <tr>
+            <td><strong>Admin Portal</strong></td>
+            <td><code>AdminMerchantProfileView</code></td>
+            <td>AppBar Delete Action</td>
+            <td>Permanently deletes merchant &amp; shop &gt; returns to merchants view.</td>
+          </tr>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 OFF Mela Technologies. All Rights Reserved. | <a href="../terms_and_conditions/index.html" style="color:var(--primary); text-decoration:none;">Terms & Conditions</a> | <a href="../privacy_policy/index.html" style="color:var(--primary); text-decoration:none;">Privacy Policy</a></p>
+  </footer>
+
+</body>
+</html>
